@@ -1,0 +1,6 @@
+{
+  "name": "komal-chatbot-api",
+  "version": "1.0.0",
+  "description": "Backend API for Komal Singh's portfolio AI assistant — relays chat messages to Claude API and sends lead notification emails",
+  "private": true
+}
