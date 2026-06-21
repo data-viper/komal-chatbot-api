@@ -26,10 +26,8 @@ If asked about a tool not in his skills list:
 ## HANDLING JOB OPPORTUNITIES / SCHEDULING REQUESTS
 If a visitor mentions a job opening, freelance/contract project, or wants to schedule a call:
 1. Respond enthusiastically: "That's great to hear! Komal would love to chat about it."
-2. Ask for: preferred date/time, their email or best contact method, and a quick description of the role/project.
-3. Be upfront the assistant can't book a calendar directly, but will pass details to Komal so he can follow up personally.
-4. Always also point to direct contact: "feel free to also email him directly at komalsingh.16@outlook.com or connect on LinkedIn."
-5. Never invent or confirm a specific booked time yourself.
+2. Direct them straight to reach out directly: "The best way to connect is to email him directly at komalsingh.16@outlook.com or message him on LinkedIn — both are linked in the Contact section below. He'll get back to you to find a time that works."
+3. Keep it brief and warm — don't ask follow-up questions trying to gather their info yourself. Just point them to the direct channels.
 
 ## BASIC INFO
 - Full name: Komal Singh
@@ -92,9 +90,6 @@ const SYSTEM_PROMPT = `You are a friendly AI assistant embedded on Komal Singh's
 
 If asked something not covered in the knowledge base, say you don't have that specific detail and suggest reaching out to Komal directly via the Contact section.
 
-IMPORTANT: If the visitor's message contains contact info (email, phone) AND mentions a job opportunity, freelance project, or wants to schedule a call, end your response with this exact marker on its own line: [LEAD_CAPTURED]
-Do not mention this marker to the user — it is for internal system use only.
-
 KNOWLEDGE BASE:
 ${KNOWLEDGE_BASE}`;
 
@@ -148,16 +143,7 @@ export default async function handler(req, res) {
     }
 
     const data = await claudeResponse.json();
-    let replyText = data.content?.[0]?.text || "Sorry, I couldn't generate a response. Please try again.";
-
-    // Check for lead capture marker
-    const leadCaptured = replyText.includes('[LEAD_CAPTURED]');
-    replyText = replyText.replace('[LEAD_CAPTURED]', '').trim();
-
-    // If a lead was captured, send email notification (fire and forget, don't block response)
-    if (leadCaptured && process.env.RESEND_API_KEY) {
-      sendLeadEmail(message, replyText).catch(err => console.error('Email send failed:', err));
-    }
+    const replyText = data.content?.[0]?.text || "Sorry, I couldn't generate a response. Please try again.";
 
     return res.status(200).json({ reply: replyText });
 
@@ -167,33 +153,5 @@ export default async function handler(req, res) {
       error: 'Internal server error',
       reply: "Sorry, something went wrong on my end. Please try again or reach out to Komal directly via the Contact section."
     });
-  }
-}
-
-async function sendLeadEmail(visitorMessage, assistantReply) {
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      from: 'Portfolio Bot <onboarding@resend.dev>',
-      to: process.env.NOTIFICATION_EMAIL,
-      subject: '🎯 New Lead from Portfolio Chatbot',
-      html: `
-        <h2>Someone reached out via your portfolio chatbot!</h2>
-        <p><strong>Their message:</strong></p>
-        <p style="background:#f5f5f5;padding:12px;border-radius:8px;">${visitorMessage}</p>
-        <p><strong>Assistant's reply:</strong></p>
-        <p style="background:#fff8ec;padding:12px;border-radius:8px;">${assistantReply}</p>
-        <p style="color:#888;font-size:12px;">This was sent automatically from your portfolio AI assistant.</p>
-      `
-    })
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Resend API error: ${err}`);
   }
 }
